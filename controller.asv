@@ -47,12 +47,9 @@ left = uicontrol('Style','togglebutton','CData',flip(I,2),...
 
 % Koppelnavi Schleife:
 pG = poseGraph();
-slam = lidarSLAM(10,5);
-pre = [0 0 0];
-scans = [objarray;lidarScan;];
-hold;
+scans = {lidarScan(0,0)};
+frame = 1;
 while(size(findobj(f))>0)
-   pause(0.05)
    ranges = [];
    pos = arrobot_getpose();
    pos(1) = pos(1)/1000;
@@ -72,24 +69,32 @@ while(size(findobj(f))>0)
    scan = lidarScan([transpose(Xwand),transpose(Ywand)]);
    scan = removeInvalidData(scan,'RangeLimits',[0.01 4.99]);
    scan = transformScan(scan,pos);
-   scans(end + 1) = scan;
+   scans{end + 1} = scan;
    addRelativePose(pG,pos);
    arrobot_setpose(0,0,0);
    subplot(3,3,1);
    plot(scan);
+   pG = optimizePoseGraph(pG);
+   frame = frame + 1;
+   pause(0.25);
 end
 % Disconnect
 arrobot_disconnect
 figure
+%addRelativePose(pG,pos,[1 0 0 1 0 1],frame,1);
+pG = optimizePoseGraph(pG);
 poses = nodeEstimates(pG);
-map = buildmap(scans,poses,10,5);
+map = buildMap(scans,poses,10,5);
+show(pG);
+figure
 show(map);
+
 %% Controlling Functions
     
 function forward(source,eventdata)
     state = get(source,'Value');
     if state == 1
-        arrobot_setvel(1000)
+        arrobot_setvel(500)
     else
         arrobot_setvel(0)
     end
@@ -98,7 +103,7 @@ end
 function backward(source,eventdata)
         state = get(source,'Value');
     if state == 1
-        arrobot_setvel(-1000)
+        arrobot_setvel(-500)
     else
         arrobot_setvel(0)
     end
