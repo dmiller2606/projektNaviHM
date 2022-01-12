@@ -50,6 +50,7 @@ pG = poseGraph();
 scans = {lidarScan(0,0)};
 frame = 1;
 angles = [90,50,30,10,350,330,310,270,270,230,210,190,170,150,130,90];
+angles = angles .* (pi/180);
 senpos = [0.069, 0.136; 0.114, 0.119; 0.148, 0.078; 0.166 0.027; 0.166 -0.027; 0.148, -0.078;
             0.114, -0.119; 0.069, -0.136; -0.157, -0.136; -0.203, -0.119; -0.237, -0.078; -0.255, -0.027;
             -0.255, 0.027; -0.255, 0.078; -0.203, 0.119; -0.157, 0.136];
@@ -60,7 +61,6 @@ while(size(findobj(f))>0)
    pos(2) = pos(2)/1000;
    pos(3)= pos(3)*(pi/180);
    for i = 0:15
-      angles(i+1) = angles(i+1) * (pi/180);
       ranges(i+1) = arrobot_getsonarrange(i)/1000;
       Xwand(i+1) = senpos(i+1,1) + ranges(i+1) * cos(angles(i+1));
       Ywand(i+1) = senpos(i+1,2) + ranges(i+1) * sin(angles(i+1));
