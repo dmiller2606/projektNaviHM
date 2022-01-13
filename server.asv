@@ -1,0 +1,22 @@
+clear all;
+close all;
+
+% Ziellienen koordinaten:
+ziel = [10 10; 10 -10]
+
+%  Init of the UDP Values
+ip = "localhost";
+portSelf = 9091;
+portClient = 9090;
+
+% Create UDP Object that handles messaging:
+udpServer = udpport('LocalPort', portSelf);
+configureTerminator(udpServer,"CR/LF");
+while(true)
+    uReceiver1Count = udpServer.NumBytesAvailable;
+    if uReceiver1Count > 0
+        data = read(udpServer,uReceiver1Count,"double");
+        curLoc = [data(end-1) data(end)];
+        if curLoc(1) >
+    end
+end

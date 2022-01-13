@@ -89,17 +89,13 @@ while(size(findobj(f))>0)
    pG = optimizePoseGraph(pG);
    frame = frame + 1;
    poses = nodeEstimates(pG);
-   curpos = poses(end,:);
-   % Send current position as cartesian coords to server:
-   write(udpClient,curpos(1:2),"double","127.0.0.1",portServ);
-   uReceiver1Count = udpClient.NumBytesAvailable;
-   if uReceiver1Count > 0
-       data = readline(udpClient);
-       if data == "Goal!"
-           disp("Goal!");
-           break
-       end
-   end    
+   curpos = 
+   % Send current position as cartesian coords:
+   x = curpos(1) * cos(curpos(3));
+   y = curpos(1) * sin(curpos(3));
+   coord = [x y];
+   disp(coord);
+   %write(udpClient,coord(:),"uint64",ip,portServ);
    pause(0.25);
 end
 % Disconnect
