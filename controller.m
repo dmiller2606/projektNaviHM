@@ -133,7 +133,6 @@ while(size(findobj(f))>0)
    subplot(3,3,1);
    plot(scan);
    pG = optimizePoseGraph(pG);
-   frame = frame + 1;
    poses = nodeEstimates(pG);
    curpos = poses(end,:);
    % Send current position as cartesian coords to server:
