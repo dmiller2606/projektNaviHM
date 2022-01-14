@@ -28,6 +28,7 @@ global down
 global left
 global right
  
+
 % Down
 down = uicontrol('Style','togglebutton','CData',flip(rot90(I)),...
     'Units','normalized','Position',[0.4 0.2 0.2 0.2],...
@@ -47,19 +48,20 @@ left = uicontrol('Style','togglebutton','CData',flip(I,2),...
 
 % Koppelnavi Schleife:
 pG = poseGraph();
+%
 XW = [0];
 YW = [0];
 thetaAb = [0];
 
 slam = lidarSLAM(20,5);
 scans = {lidarScan(0,0)};
+%scans = {};
 frame = 1;
 angles = [90,50,30,10,350,330,310,270,270,230,210,190,170,150,130,90];
 angles = angles .* (pi/180);
 senpos = [0.069, 0.136; 0.114, 0.119; 0.148, 0.078; 0.166 0.027; 0.166 -0.027; 0.148, -0.078;
             0.114, -0.119; 0.069, -0.136; -0.157, -0.136; -0.203, -0.119; -0.237, -0.078; -0.255, -0.027;
             -0.255, 0.027; -0.237, 0.078; -0.203, 0.119; -0.157, 0.136];
-
 while(size(findobj(f))>0)
    ranges = [];
    pos = arrobot_getpose();
@@ -71,16 +73,14 @@ while(size(findobj(f))>0)
       Xwand(i+1) = senpos(i+1,1) + ranges(i+1) * cos(angles(i+1));
       Ywand(i+1) = senpos(i+1,2) + ranges(i+1) * sin(angles(i+1));
    end
-
-   % Occupancy Grid
    scan = lidarScan([transpose(Xwand),transpose(Ywand)]);
    scan = removeInvalidData(scan,'RangeLimits',[0.01 4.99]);
    scan = transformScan(scan,pos);
    scans{end + 1} = scan;
    addRelativePose(pG,pos);
    frame = frame + 1;
-  
-   % MapBuilding
+   
+   %thetaAb = thetaAb + (arrobot_getth() * (pi/180));
    posesEST = nodeEstimates(pG);
    thetaAb = posesEST(frame,3);
 
@@ -95,7 +95,6 @@ while(size(findobj(f))>0)
    XW =  horzcat(XW,XwandS);
    YW =  horzcat(YW,YwandS); 
 
-   % collison avoidance
    entf3 = arrobot_getsonarrange(3)/1000;
    entf4 = arrobot_getsonarrange(4)/1000;
    entf11 = arrobot_getsonarrange(11)/1000;
@@ -121,24 +120,25 @@ while(size(findobj(f))>0)
    subplot(3,3,1);
    plot(scan);
    pG = optimizePoseGraph(pG);
-   pause(0.05);
-end
+   %figure();
+   %hold on;
+   %plot(XwandS, YwandS, '.') 
 
+   pause(1);
+end
 % Disconnect
 arrobot_disconnect
-
 figure
+%addRelativePose(pG,pos,[1 0 0 1 0 1],frame,1);
 pG = optimizePoseGraph(pG);
 poses = nodeEstimates(pG);
-map = buildMap(scans,poses,30,5);
+map = buildMap(scans,poses,10,5);
 
-% Plot
 hold on;
 axis equal;
 plot(poses(:,1),poses(:,2),'-.');
 plot(XW, YW, '.')
-figure
-show(map);
+%show(map);
 
 %% Controlling Functions
     
