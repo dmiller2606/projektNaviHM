@@ -17,6 +17,16 @@ addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Ma
 % <==
 aria_init -rh localhost -rrtp 8101
 arrobot_connect
+
+%  Init of the UDP Values
+ip = "localhost";
+portSelf = 9090;
+portServ = 9091;
+
+% Create UDP Object that handles messaging:
+udpClient = udpport('LocalPort', portSelf);
+configureTerminator(udpClient,"CR/LF");
+
 %% GUI Init
 f = figure;
 [I,map] = imread('img/leftArrow.png');
@@ -45,7 +55,7 @@ left = uicontrol('Style','togglebutton','CData',flip(I,2),...
     'Units','normalized','Position',[0.2 0.4 0.2 0.2],...
     'Callback',{@rotateCounterClock});
 
-% Koppelnavi Schleife:
+% Schleife scannen, fahren, mappen:
 pG = poseGraph();
 XW = [0];
 YW = [0];
@@ -59,6 +69,8 @@ angles = angles .* (pi/180);
 senpos = [0.069, 0.136; 0.114, 0.119; 0.148, 0.078; 0.166 0.027; 0.166 -0.027; 0.148, -0.078;
             0.114, -0.119; 0.069, -0.136; -0.157, -0.136; -0.203, -0.119; -0.237, -0.078; -0.255, -0.027;
             -0.255, 0.027; -0.237, 0.078; -0.203, 0.119; -0.157, 0.136];
+
+curpos = [0 0 0];
 
 while(size(findobj(f))>0)
    ranges = [];
@@ -121,7 +133,20 @@ while(size(findobj(f))>0)
    subplot(3,3,1);
    plot(scan);
    pG = optimizePoseGraph(pG);
-   pause(0.05);
+   frame = frame + 1;
+   poses = nodeEstimates(pG);
+   curpos = poses(end,:);
+   % Send current position as cartesian coords to server:
+   write(udpClient,curpos(1:2),"double","127.0.0.1",portServ);
+   uReceiver1Count = udpClient.NumBytesAvailable;
+   if uReceiver1Count > 0
+       data = readline(udpClient);
+       if data == "Goal!"
+           disp("Goal!");
+           break
+       end
+   end    
+   pause(0.25);
 end
 
 % Disconnect
