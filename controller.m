@@ -153,7 +153,9 @@ arrobot_disconnect
 
 figure
 pG = optimizePoseGraph(pG);
+global poses;
 poses = nodeEstimates(pG);
+global map;
 map = buildMap(scans,poses,30,5);
 
 % Plot
@@ -164,8 +166,31 @@ plot(XW, YW, '.')
 figure
 show(map);
 
+%%
+figure
+% Right
+calculatePathButton = uicontrol('Style','pushButton','String','Calculate Path',...
+    'Units','normalized','Position',[0.5 0.4 0.4 0.2],...
+    'Callback',{@calcPath});
+drivePathButton = uicontrol('Style','pushButton','String','Auto Drive Path',...
+    'Units','normalized','Position',[0.1 0.4 0.4 0.2],...
+    'Callback',{@drivePath});
+
+
 %% Controlling Functions
-    
+function calcPath(source, eventdata)
+    global map;
+    global poses;
+    global path;
+    % Hier aufruf zum Script um Trajektorie zu berechnen und dann als in
+    % path speichern
+end
+
+function drivePath(source, eventdata)
+    global path;
+    % Hier aufruf zum automatischen abfahren der Trajektorie.
+end
+
 function forward(source,eventdata)
     state = get(source,'Value');
     if state == 1
