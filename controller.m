@@ -152,9 +152,11 @@ end
 arrobot_disconnect
 
 figure
+%addRelativePose(pG,[0 0 0],[1 0 0 1 0 1],frame,1)
 pG = optimizePoseGraph(pG);
 poses = nodeEstimates(pG);
 map = buildMap(scans,poses,10,5);
+
 
 % Plot
 hold on;
