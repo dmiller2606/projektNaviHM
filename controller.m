@@ -6,14 +6,14 @@ ver
 %% Aria Pfad und Neustart
 % ==> notwendiger work around
 % pfad hinzufuegen
-addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+addpath('C:\Users\dmill\Desktop\Projekt Navi\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled');
 
 % disconnet robot
 arrobot_disconnect
 % nochmals clear notwendig
 clear all
 % pfad hinzufuegen
-addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+addpath('C:\Users\dmill\Desktop\Projekt Navi\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled');
 % <==
 aria_init -rh localhost -rrtp 8101
 arrobot_connect
@@ -145,7 +145,7 @@ while(size(findobj(f))>0)
            break
        end
    end    
-   pause(0.25);
+   pause(0.05);
 end
 
 % Disconnect
@@ -153,37 +153,68 @@ arrobot_disconnect
 
 figure
 pG = optimizePoseGraph(pG);
-global poses;
 poses = nodeEstimates(pG);
-global map;
-map = buildMap(scans,poses,30,5);
+map = buildMap(scans,poses,10,5);
 
 % Plot
 hold on;
 axis equal;
 plot(poses(:,1),poses(:,2),'-.');
 plot(XW, YW, '.')
-figure
+h = figure;
 show(map);
-
+hold on;
+plot(0,0,".",'Color',[1 0 1]);
+plot(poses(end,1),poses(end,2),'.','Color',[1 1 0]);
+global mapImage;
+mapImage = frame2im(getframe());
 %%
 figure
 % Right
 calculatePathButton = uicontrol('Style','pushButton','String','Calculate Path',...
-    'Units','normalized','Position',[0.5 0.4 0.4 0.2],...
+    'Units','normalized','Position',[0.1 0.4 0.4 0.2],...
     'Callback',{@calcPath});
 drivePathButton = uicontrol('Style','pushButton','String','Auto Drive Path',...
-    'Units','normalized','Position',[0.1 0.4 0.4 0.2],...
+    'Units','normalized','Position',[0.5 0.4 0.4 0.2],...
     'Callback',{@drivePath});
 
 
 %% Controlling Functions
 function calcPath(source, eventdata)
-    global map;
-    global poses;
+    global mapImage;
     global path;
-    % Hier aufruf zum Script um Trajektorie zu berechnen und dann als in
-    % path speichern
+    
+    [rowStart,colStart] = find(mapImage(:, :, 1) == 255 & mapImage(:, :, 2) == 0 & mapImage(:, :, 3) == 255);
+    [rowEnd,colEnd] = find(mapImage(:, :, 1) == 255 & mapImage(:, :, 2) == 255 & mapImage(:, :, 3) == 0);  
+    se = strel('disk',5);
+    bw = imopen(mapImage,se);
+    bw2 = rgb2gray(bw);
+    bw3 = imbinarize(bw2);
+    bwmorph(bw3,'remove');
+    skel = bwmorph(bw3,'skel', Inf);
+    skel = bwmorph(skel,'diag', Inf);
+    skel(rowStart(1)-5 : rowStart(1)+5,colStart(1)-5:colStart(1)+5) = 1;
+    skel(rowEnd(1)-5 : rowEnd(1)+5,colEnd(1)-5:colEnd(1)+5) = 1;
+    D1 = bwdistgeodesic(skel, colStart(1), rowStart(1), 'quasi-euclidean');
+    D2 = bwdistgeodesic(skel, colEnd(1), rowEnd(1), 'quasi-euclidean');
+
+    D = D1 + D2;
+    D = round(D * 8) / 8;
+
+    D(isnan(D)) = inf;
+    skeleton_path = imregionalmin(D);
+    skeleton_path = imdilate(skeleton_path,ones(3,3));
+    skel_fastestpath = skel & skeleton_path;
+    skel_fastestpath = bwmorph(skel_fastestpath,'skel',Inf);
+    skel_fastestpath = bwmorph(skel_fastestpath,'branchpoints');
+    skel_fastestpath = bwmorph(skel_fastestpath,'spur',Inf);
+    skel_fastestpath = bwmorph(skel_fastestpath,'thin',Inf);
+
+    [rowPath,colPath] = find(skel_fastestpath);
+    points = [rowPath(:) - rowStart(1) ,colPath(:) - colStart(1)].*46;
+    points(:,1) = points(:,1) .* -1
+    figure
+    imshow(skel_fastestpath)
 end
 
 function drivePath(source, eventdata)
