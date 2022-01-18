@@ -132,6 +132,7 @@ while(size(findobj(f))>0)
    arrobot_setpose(0,0,0);
    subplot(3,3,1);
    plot(scan);
+   title('Sonar Scan')
    pG = optimizePoseGraph(pG);
    poses = nodeEstimates(pG);
    curpos = poses(end,:);
