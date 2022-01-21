@@ -6,14 +6,14 @@ ver
 %% Aria Pfad und Neustart
 % ==> notwendiger work around
 % pfad hinzufuegen
-addpath('C:\Users\dmill\Desktop\Projekt Navi\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
 
 % disconnet robot
 arrobot_disconnect
 % nochmals clear notwendig
 clear all
 % pfad hinzufuegen
-addpath('C:\Users\dmill\Desktop\Projekt Navi\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
 % <==
 aria_init -rh localhost -rrtp 8101
 arrobot_connect
@@ -61,6 +61,7 @@ XW = [0];
 YW = [0];
 thetaAb = [0];
 
+
 slam = lidarSLAM(20,5);
 scans = {lidarScan(0,0)};
 frame = 1;
@@ -91,6 +92,8 @@ while(size(findobj(f))>0)
    scans{end + 1} = scan;
    addRelativePose(pG,pos);
    frame = frame + 1;
+
+   
   
    % MapBuilding
    posesEST = nodeEstimates(pG);
@@ -192,9 +195,13 @@ function calcPath(source, eventdata)
     bw = imopen(mapImage,se);
     bw2 = rgb2gray(bw);
     bw3 = imbinarize(bw2);
+    figure
     bwmorph(bw3,'remove');
-    skel = bwmorph(bw3,'skel', Inf);
-    skel = bwmorph(skel,'diag', Inf);
+    skelgraph = bwmorph(bw3,'skel', Inf);
+    figure
+    imshow(skelgraph)
+
+    skel = bwmorph(skelgraph,'diag', Inf);
     skel(rowStart(1)-5 : rowStart(1)+5,colStart(1)-5:colStart(1)+5) = 1;
     skel(rowEnd(1)-5 : rowEnd(1)+5,colEnd(1)-5:colEnd(1)+5) = 1;
     D1 = bwdistgeodesic(skel, colStart(1), rowStart(1), 'quasi-euclidean');
@@ -206,24 +213,114 @@ function calcPath(source, eventdata)
     D(isnan(D)) = inf;
     skeleton_path = imregionalmin(D);
     skeleton_path = imdilate(skeleton_path,ones(3,3));
-    skel_fastestpath = skel & skeleton_path;
+    skel_fastestpath =  skel & skeleton_path;
     skel_fastestpath = bwmorph(skel_fastestpath,'skel',Inf);
     skel_fastestpath = bwmorph(skel_fastestpath,'branchpoints');
     skel_fastestpath = bwmorph(skel_fastestpath,'spur',Inf);
     skel_fastestpath = bwmorph(skel_fastestpath,'thin',Inf);
 
     [rowPath,colPath] = find(skel_fastestpath);
-    points = [rowPath(:) - rowStart(1) ,colPath(:) - colStart(1)].*46;
+    points = [rowPath(:) - rowStart(1) ,colPath(:) - colStart(1)].*46
     points(:,1) = points(:,1) .* -1
+    path = points
     figure
     imshow(skel_fastestpath)
+    
 end
 
 function drivePath(source, eventdata)
-    global path;
+    %global path;
+
+    % pfad hinzufuegen
+addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+
+% disconnet robot
+arrobot_disconnect
+% nochmals clear notwendig
+clear all
+% pfad hinzufuegen
+addpath('C:\Daten_Alex\HM München (Uni)\5. Semester Kurse\Projekt Navigation\Materialien (1)\Materialien\Software\ARIA_2.9.1 (64-bit)_matlab_precompiled\ARIA_2.9.1 (64-bit)_matlab_precompiled');
+% <==
+aria_init -rh localhost -rrtp 8101
+
+arrobot_connect
+
+P = [2152 0;
+    2153 -1484;
+    2800 -1529;
+    4314 -1637;
+    4427 152;];    
+     
+
+anzPktAbgef = 1;
+t = 0;
+
+    %Geschwindigkeitseinstellung und Losfahren des Roboters
+arrobot_setvel(400)
+
+%While-Schleife, die den gesamten Pfad-Abfahrprozess aktiv haelt, bis der
+%letzte Pfadpunkt erreicht ist
+while anzPktAbgef < size(P,1)+1
+
+    pause(0.25)
+    curPosX = arrobot_getx
+    curPosY = arrobot_gety
+
+    %Positionsvergleich zwischen aktueller Position (curPos = current Position)
+    %und Zielposition
+    %Wenn der Zielpunkt um maximal 250mm in jede Richtung verfehlt wird, gilt
+    %der Punkt als abgefahren
+    if curPosX < P(anzPktAbgef,1)+250 && curPosX >= P(anzPktAbgef,1)-250 && curPosY <= P(anzPktAbgef,2)+250 && curPosY >= P(anzPktAbgef,2)-250
+        arrobot_setvel(0)
+        pause(5)
+        anzPktAbgef = anzPktAbgef + 1;
+
+        %Abbruchbedingung für while-Schleife. Sorgt dafuer, dass am Ende des Pfads
+        %korrekt beendet wird
+        if size(P,1) < anzPktAbgef
+            break;
+        end
+
+        %%Rotation
+        %Berechnung der Koordinatenunterschiede delta aus aktueller Position und
+        %naechstem Pfadpunkt
+        deltaX = P(anzPktAbgef,1) - arrobot_getx
+        deltaY = P(anzPktAbgef,2) - arrobot_gety
+
+        %Fallunterscheidung Quadranten
+        if deltaY > 0 && deltaX > 0
+            t = 0;
+        elseif deltaY > 0 && deltaX < 0
+            t = 180;
+        elseif deltaY < 0 && deltaX < 0
+            t = 180;
+        elseif deltaY < 0 && deltaX > 0
+            t = 360;
+        end
+
+        % if deltaX == 0 || deltaY == 0
+        %     phiGrad = 90;
+        % else
+        %Errechnung Drehwinkel in Grad mit Hilfe der Koordinatenunterschiede delta
+        phiGrad = atan(deltaY/deltaX) * (180/pi) + t - arrobot_getth
+        % end
+        %Ausfuehren der Drehung des Roboters auf naechsten Punkt, pause(9)
+        %evtl. verlaengern bei groesseren Drehwinkeln als 90 Grad
+        arrobot_setdeltaheading(phiGrad)
+        pause(9)
+        
+        %Geschwindigkeitseinstellung und Losfahren des Roboters nach
+        %Drehung
+        arrobot_setvel(400)
+    end
+end
+% Disconnect
+arrobot_disconnect
     % Hier aufruf zum automatischen abfahren der Trajektorie.
 end
 
+
+%% Direction
 function forward(source,eventdata)
     state = get(source,'Value');
     if state == 1
